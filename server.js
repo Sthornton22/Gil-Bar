@@ -29,11 +29,11 @@ const dm = { exports: {} };
 const docxLib = dm.exports;
 
 /* ---- assets ---- */
-const PAYLOAD = JSON.parse(fs.readFileSync(path.join(__dirname, 'assets/payload.json'), 'utf8'));
-const TC = JSON.parse(fs.readFileSync(path.join(__dirname, 'assets/tc.json'), 'utf8'));
-const WM = fs.readFileSync(path.join(__dirname, 'assets/gilbar_wordmark1.png'));
-const WM_B64 = fs.readFileSync(path.join(__dirname, 'assets/wm.b64'), 'utf8').trim();
-const CORE_SRC = fs.readFileSync(path.join(__dirname, 'lib/app_core.js'), 'utf8');
+const PAYLOAD = JSON.parse(fs.readFileSync(path.join(__dirname, 'payload.json'), 'utf8'));
+const TC = JSON.parse(fs.readFileSync(path.join(__dirname, 'tc.json'), 'utf8'));
+const WM = fs.readFileSync(path.join(__dirname, 'gilbar_wordmark1.png'));
+const WM_B64 = fs.readFileSync(path.join(__dirname, 'wm.b64'), 'utf8').trim();
+const CORE_SRC = fs.readFileSync(path.join(__dirname, 'app_core.js'), 'utf8');
 
 /* ---- per-request engine: fresh job state, no cross-request bleed ---- */
 function newEngine() {
@@ -196,50 +196,74 @@ footer.foot{margin-top:28px;font-size:12px;color:var(--sub);border-top:1px solid
 .mfr .mlogo{width:22px;height:22px;border-radius:50%;object-fit:contain;background:#fff;border:1px solid var(--line)}
 .mfr .mlogo.wide{width:auto;max-width:44px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;padding:2px}
 .mfr .mmono{width:22px;height:22px;border-radius:50%;background:var(--rust);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.hero{text-align:center;margin:26px 0 8px}
+.hero img{height:64px}
+.hero h1{font-size:34px;margin:18px 0 10px;color:var(--ink);font-weight:800}
+.hero h1 em{color:var(--rust);font-style:italic}
+.hero .lede{color:var(--sub);font-size:14px;max-width:62ch;margin:0 auto 26px}
+.slots{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.slot{flex:1 1 300px;max-width:380px;background:#fff;border:1.5px dashed var(--line);border-radius:12px;padding:22px 18px;text-align:center;cursor:pointer}
+.slot.drag{border-color:var(--rust);background:#fdf4f4}
+.slot b{display:block;font-size:14px;color:var(--ink);margin-bottom:6px}
+.slot b .req{color:var(--rust)}
+.slot .sub{font-size:12px;color:var(--sub);line-height:1.5}
+.slot .chips{margin-top:10px}
+.genrow{text-align:center;margin:6px 0 4px}
 </style></head><body><div class="wrap">
 <header class="top"><div class="brand"><img src="/static/wordmark.png" alt="Gil-Bar — An Ambient Company"></div>
 <nav><a href="/">New proposal</a><a href="/history">History</a></nav></header>`;
-const PAGE_BOTTOM = `<footer class="foot">Drafts only — every proposal is completed by an engineer before it is sent.
-No pricing is ever generated. Reconstructed Gil-Bar letterhead (not the embedded-wordmark master binary).</footer>
+const PAGE_BOTTOM = `<footer class="foot">Drafts only — every proposal is completed by an engineer before it is sent. No pricing is ever generated.</footer>
 </div></body></html>`;
 
 app.get('/static/wordmark.png', (req, res) => { res.type('png').send(WM); });
 
 app.get('/', (req, res) => {
   res.send(PAGE_TOP('Gil-Bar Proposal Engine') + `
-<div class="eyebrow">Proposal Engine</div>
-<h1>Drop the job files. Get the draft.</h1>
-<p class="lede">Drop the job files — a cost sheet (Excel/CSV or PDF), a factory selection/submittal package (any manufacturer), a unit cut sheet, and/or a drawing set —
-pick several at once. Models, voltage, quantities, the design-basis vs. any comparison family, and the project name are
-read from the documents. Anything the documents genuinely don't contain (quote no., engineer, dates) prints as a red
-<span class="mono">[CONFIRM]</span> flag, never a guess.</p>
-<div class="card">
-<form id="f" method="post" action="/generate" enctype="multipart/form-data">
-  <div class="drop" id="drop">
-    <h3 style="margin:0 0 6px">Drop the job files here</h3>
-    <p style="margin:0 auto 14px;max-width:46ch;color:var(--sub);font-size:13px">Cost sheet (Excel/CSV or PDF), selection package, submittal, unit cut sheet, or drawing set — they're sorted automatically.</p>
-    <input type="file" id="files" name="files" accept=".pdf,.xlsx,.xls,.csv" multiple style="display:none">
-    <button type="button" class="btn" onclick="document.getElementById('files').click()">Choose PDF(s)</button>
-    <div class="chips" id="chips"></div>
-  </div>
-  <div style="margin-top:16px;display:flex;align-items:center;gap:14px">
-    <button type="submit" class="btn" id="go" disabled>Generate draft proposal</button>
-    <span class="spin" id="spin">Reading schedules, resolving design-basis, scope-gating, building the draft…</span>
-  </div>
-  <div class="note">Files are processed for this request only and are not retained on the server.</div>
-</form>
+<div class="hero">
+  <img src="/static/wordmark.png" alt="Gil-Bar">
+  <h1>The Gil-Bar <em>Proposal Engine</em></h1>
+  <p class="lede">Drop in the job files — engineer, project, scope, includes, and QA are read off the drawings automatically and flagged if anything is uncertain.</p>
 </div>
+<form id="f" method="post" action="/generate" enctype="multipart/form-data">
+  <div class="slots">
+    <div class="slot" id="slotA">
+      <b>Mechanical schedule <span class="req">*</span></b>
+      <div class="sub">PDF of the drawing set with the schedules<br>(or an extracted equipment CSV)</div>
+      <input type="file" id="fA" name="files" accept=".pdf,.csv" multiple style="display:none">
+      <div class="chips" id="chipsA"></div>
+    </div>
+    <div class="slot" id="slotB">
+      <b>Cost sheet / factory selection</b>
+      <div class="sub">PDF or Excel — recommended;<br>source of truth for models &amp; includes</div>
+      <input type="file" id="fB" name="files" accept=".pdf,.xlsx,.xls,.csv" multiple style="display:none">
+      <div class="chips" id="chipsB"></div>
+    </div>
+  </div>
+  <div class="genrow">
+    <button type="submit" class="btn" id="go" disabled>Generate draft proposal</button>
+    <div class="spin" id="spin">Reading schedules, scope-gating, building the draft, running QA — about 30–60 seconds…</div>
+  </div>
+</form>
 <div class="mfrs"><h2>Manufacturers we represent</h2><div class="mfrgrid" id="mfrGrid"></div></div>
 <script>
-var input=document.getElementById('files'),chips=document.getElementById('chips'),go=document.getElementById('go'),drop=document.getElementById('drop');
-var staged=new DataTransfer();
-function render(){chips.innerHTML='';for(var i=0;i<staged.files.length;i++){var s=document.createElement('span');s.className='chip';s.textContent=staged.files[i].name;chips.appendChild(s);}input.files=staged.files;go.disabled=!staged.files.length;}
-function add(list){for(var i=0;i<list.length;i++){var f=list[i];if(!/\.(pdf|xlsx|xls|csv)$/i.test(f.name))continue;var dup=false;for(var j=0;j<staged.files.length;j++)if(staged.files[j].name===f.name&&staged.files[j].size===f.size)dup=true;if(!dup)staged.items.add(f);}render();}
-input.addEventListener('change',function(){add(input.files);});
-['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('drag');});});
-['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('drag');});});
-drop.addEventListener('drop',function(e){add(e.dataTransfer.files);});
-document.getElementById('f').addEventListener('submit',function(){document.getElementById('spin').style.display='inline';go.disabled=true;});
+function wire(slotId, inputId, chipsId){
+  var slot=document.getElementById(slotId), input=document.getElementById(inputId), chips=document.getElementById(chipsId);
+  var staged=new DataTransfer();
+  function render(){chips.innerHTML='';for(var i=0;i<staged.files.length;i++){var s=document.createElement('span');s.className='chip';s.textContent=staged.files[i].name;chips.appendChild(s);}input.files=staged.files;update();}
+  function add(list){for(var i=0;i<list.length;i++){var f=list[i];if(!/\\.(pdf|xlsx|xls|csv)$/i.test(f.name))continue;var dup=false;for(var j=0;j<staged.files.length;j++)if(staged.files[j].name===f.name&&staged.files[j].size===f.size)dup=true;if(!dup)staged.items.add(f);}render();}
+  slot.addEventListener('click',function(e){if(e.target.tagName!=='INPUT')input.click();});
+  input.addEventListener('change',function(){add(input.files);});
+  ['dragenter','dragover'].forEach(function(ev){slot.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();slot.classList.add('drag');});});
+  ['dragleave','drop'].forEach(function(ev){slot.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();slot.classList.remove('drag');});});
+  slot.addEventListener('drop',function(e){add(e.dataTransfer.files);});
+  return function(){return staged.files.length;};
+}
+var go=document.getElementById('go');
+var counts=[];
+function update(){var n=0;counts.forEach(function(c){n+=c();});go.disabled=!n;}
+counts.push(wire('slotA','fA','chipsA'));
+counts.push(wire('slotB','fB','chipsB'));
+document.getElementById('f').addEventListener('submit',function(){document.getElementById('spin').style.display='block';go.disabled=true;});
 var MFRS=[
  {n:'AAON',d:'aaon.com'},{n:'Samsung',d:'samsunghvac.com'},{n:'York / JCI',d:'johnsoncontrols.com'},
  {n:'Hitachi',d:'hitachiaircon.com'},{n:'Lennox',d:'lennox.com',u:'https://www.lennox.com/application/themes/lennox/assets/global/lennox_logo.svg'},{n:'ClimateMaster',d:'climatemaster.com'},
@@ -262,7 +286,7 @@ var MFRS=[
   img.src=m.u || ('https://www.google.com/s2/favicons?domain='+m.d+'&sz=128');
   if(m.u) img.classList.add('wide');
   var mono=document.createElement('span'); mono.className='mmono'; mono.style.display='none';
-  mono.textContent=m.n.replace(/[^A-Za-z ]/g,'').split(/[\s/]+/).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+  mono.textContent=m.n.replace(/[^A-Za-z ]/g,'').split(/[\\s/]+/).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
   img.addEventListener('error',function(){ img.style.display='none'; mono.style.display='inline-flex'; });
   el.appendChild(img); el.appendChild(mono); el.appendChild(document.createTextNode(m.n));
   g.appendChild(el);
